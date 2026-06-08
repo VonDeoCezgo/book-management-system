@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图书管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <i class="bi bi-book-half sidebar-logo-icon"></i>
+            <span class="sidebar-title">图书管理系统</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a class="nav-item active" data-page="books" onclick="switchPage('books')">
+                <i class="bi bi-search"></i>
+                <span>图书查阅</span>
+            </a>
+            <a class="nav-item" data-page="add" onclick="switchPage('add')">
+                <i class="bi bi-plus-circle"></i>
+                <span>添加图书</span>
+            </a>
+            <a class="nav-item" data-page="dashboard" onclick="switchPage('dashboard')">
+                <i class="bi bi-bar-chart"></i>
+                <span>数据概览</span>
+            </a>
+            <a class="nav-item" data-page="readers" onclick="switchPage('readers')">
+                <i class="bi bi-people"></i>
+                <span>读者管理</span>
+            </a>
+            <a class="nav-item" data-page="borrows" onclick="switchPage('borrows')">
+                <i class="bi bi-journal-bookmark"></i>
+                <span>借阅管理</span>
+            </a>
+            <a class="nav-item d-none" id="navAdmin" data-page="admin" onclick="switchPage('admin')">
+                <i class="bi bi-server"></i>
+                <span>数据库管理</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="dropdown w-100">
+                <a class="nav-user" href="#" role="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-person-circle fs-5"></i>
+                    <div class="ms-1">
+                        <div class="fw-semibold small" id="sidebarUsername">用户</div>
+                        <div class="text-white-50" style="font-size:0.72rem;" id="sidebarRole">-</div>
+                    </div>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><span class="dropdown-item-text small text-muted">
+                        已登录：<strong id="dropdownUsername">-</strong>
+                    </span></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" id="switchRoleLink" style="display:none;" onclick="switchRole()">
+                        <i class="bi bi-person-badge me-2"></i>
+                        <span id="switchRoleText">切换为管理员</span>
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="logout()">
+                        <i class="bi bi-box-arrow-right me-2"></i>退出登录
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+
+        <!-- 图书查阅页面 -->
+        <section id="page-books" class="page-section active">
+            <div class="page-header">
+                <h4 class="page-title"><i class="bi bi-search me-2"></i>图书查阅</h4>
+                <p class="page-desc">浏览、搜索和管理所有图书信息</p>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="row g-3 mb-4">
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                            <i class="bi bi-collection"></i>
+                        </div>
+                        <div>
+                            <h6 class="stats-label">馆藏图书</h6>
+                            <h3 class="stats-number" id="totalBooks">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-icon bg-success bg-opacity-10 text-success">
+                            <i class="bi bi-tags"></i>
+                        </div>
+                        <div>
+                            <h6 class="stats-label">图书种类</h6>
+                            <h3 class="stats-number" id="totalCategories">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-icon bg-warning bg-opacity-10 text-warning">
+                            <i class="bi bi-box-seam"></i>
+                        </div>
+                        <div>
+                            <h6 class="stats-label">总库存量</h6>
+                            <h3 class="stats-number" id="totalQuantity">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-icon bg-info bg-opacity-10 text-info">
+                            <i class="bi bi-book"></i>
+                        </div>
+                        <div>
+                            <h6 class="stats-label">可借数量</h6>
+                            <h3 class="stats-number" id="availableBooks">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 搜索栏 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-5">
+                            <div class="input-group search-box">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" id="searchInput" class="form-control" placeholder="输入书名或作者关键词搜索..." autocomplete="off">
+                                <button class="btn btn-outline-secondary" id="searchClear" style="display:none;">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <select class="form-select" id="filterCategory">
+                                <option value="">全部分类</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 text-md-end">
+                            <button class="btn btn-primary" onclick="switchPage('add')">
+                                <i class="bi bi-plus-lg me-1"></i>添加图书
+                            </button>
+                            <button class="btn btn-outline-secondary ms-2" onclick="loadBooks()" title="刷新">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图书表格 -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">#</th>
+                                    <th>书名</th>
+                                    <th>作者</th>
+                                    <th>ISBN</th>
+                                    <th>分类</th>
+                                    <th>价格</th>
+                                    <th>库存</th>
+                                    <th class="text-center pe-4">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bookTableBody">
+                                <tr>
+                                    <td colspan="8" class="text-center py-5 text-muted">
+                                        <div class="spinner-border spinner-border-sm me-2"></div>加载中...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">共 <strong id="bookCount">0</strong> 本图书</span>
+                    <small class="text-muted" id="searchInfo"></small>
+                </div>
+            </div>
+        </section>
+
+        <!-- 添加图书页面 -->
+        <section id="page-add" class="page-section">
+            <div class="page-header">
+                <h4 class="page-title"><i class="bi bi-plus-circle me-2"></i>添加图书</h4>
+                <p class="page-desc">录入新图书信息到系统中</p>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <form id="addBookForm" novalidate>
+                        <input type="hidden" id="editBookId">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label for="title" class="form-label">书名 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="title" required placeholder="请输入书名">
+                                <div class="invalid-feedback">请输入书名</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="isbn" class="form-label">ISBN</label>
+                                <input type="text" class="form-control" id="isbn" placeholder="ISBN号">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="author" class="form-label">作者 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="author" required placeholder="请输入作者">
+                                <div class="invalid-feedback">请输入作者</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="category" class="form-label">分类</label>
+                                <select class="form-select" id="category">
+                                    <option value="">请选择分类</option>
+                                    <option value="编程技术">编程技术</option>
+                                    <option value="计算机科学">计算机科学</option>
+                                    <option value="数据库">数据库</option>
+                                    <option value="人工智能">人工智能</option>
+                                    <option value="网络技术">网络技术</option>
+                                    <option value="操作系统">操作系统</option>
+                                    <option value="文学小说">文学小说</option>
+                                    <option value="历史地理">历史地理</option>
+                                    <option value="经济管理">经济管理</option>
+                                    <option value="其他">其他</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="publisher" class="form-label">出版社</label>
+                                <input type="text" class="form-control" id="publisher" placeholder="出版社名称">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="publishDate" class="form-label">出版日期</label>
+                                <input type="date" class="form-control" id="publishDate">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="price" class="form-label">价格 <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">¥</span>
+                                    <input type="number" class="form-control" id="price" step="0.01" min="0" required placeholder="0.00">
+                                </div>
+                                <div class="invalid-feedback">请输入有效价格</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="quantity" class="form-label">库存数量 <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="quantity" min="0" value="1" required>
+                                <div class="invalid-feedback">请输入有效库存</div>
+                            </div>
+                            <div class="col-12">
+                                <label for="description" class="form-label">简介</label>
+                                <textarea class="form-control" id="description" rows="3" placeholder="请输入图书简介"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <button type="button" class="btn btn-primary" id="saveBookBtn" onclick="saveBookFromPage()">
+                                    <i class="bi bi-check-lg me-1"></i>保存图书
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary ms-2" onclick="resetAddForm()">
+                                    <i class="bi bi-arrow-repeat me-1"></i>重置表单
+                                </button>
+                                <span class="ms-3 text-muted small" id="editHint" style="display:none;">
+                                    <i class="bi bi-info-circle me-1"></i>正在编辑图书
+                                    <a href="#" onclick="resetAddForm()" class="ms-1">取消编辑</a>
+                                </span>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- 读者管理页面 -->
+        <section id="page-readers" class="page-section">
+            <div class="page-header">
+                <h4 class="page-title"><i class="bi bi-people me-2"></i>读者管理</h4>
+                <p class="page-desc">管理读者信息，查看借阅情况</p>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="row g-3 mb-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <div>
+                            <h6 class="stats-label">读者总数</h6>
+                            <h3 class="stats-number" id="readerTotalCount">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-icon bg-success bg-opacity-10 text-success">
+                            <i class="bi bi-person-check"></i>
+                        </div>
+                        <div>
+                            <h6 class="stats-label">活跃读者</h6>
+                            <h3 class="stats-number" id="readerActiveCount">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-icon bg-secondary bg-opacity-10 text-secondary">
+                            <i class="bi bi-person-x"></i>
+                        </div>
+                        <div>
+                            <h6 class="stats-label">停用读者</h6>
+                            <h3 class="stats-number" id="readerInactiveCount">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 搜索 & 添加 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-6">
+                            <div class="input-group search-box">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" id="readerSearchInput" class="form-control" placeholder="搜索姓名、读者编号或电话..." autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <button class="btn btn-primary" onclick="showAddReaderModal()">
+                                <i class="bi bi-plus-lg me-1"></i>添加读者
+                            </button>
+                            <button class="btn btn-outline-secondary ms-2" onclick="loadReaders()" title="刷新">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 读者表格 -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">#</th>
+                                    <th>姓名</th>
+                                    <th>读者编号</th>
+                                    <th>性别</th>
+                                    <th>电话</th>
+                                    <th>最大借阅</th>
+                                    <th>当前借阅</th>
+                                    <th>状态</th>
+                                    <th class="text-center pe-4">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="readerTableBody">
+                                <tr><td colspan="9" class="text-center py-5 text-muted">
+                                    <div class="spinner-border spinner-border-sm me-2"></div>加载中...
+                                </td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">共 <strong id="readerCount">0</strong> 位读者</span>
+                    <nav id="readerPagination"></nav>
+                </div>
+            </div>
+        </section>
+
+        <!-- 借阅管理页面 -->
+        <section id="page-borrows" class="page-section">
+            <div class="page-header">
+                <h4 class="page-title"><i class="bi bi-journal-bookmark me-2"></i>借阅管理</h4>
+                <p class="page-desc">管理图书借阅、归还及逾期记录</p>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="row g-3 mb-4">
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                            <i class="bi bi-book-half"></i>
+                        </div>
+                        <div>
+                            <h6 class="stats-label">正在借阅</h6>
+                            <h3 class="stats-number" id="borrowBorrowingCount">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-icon bg-success bg-opacity-10 text-success">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                        <div>
+                            <h6 class="stats-label">今日归还</h6>
+                            <h3 class="stats-number" id="borrowTodayReturn">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-icon bg-danger bg-opacity-10 text-danger">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                        <div>
+                            <h6 class="stats-label">逾期未还</h6>
+                            <h3 class="stats-number" id="borrowOverdueCount">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card">
+                        <div class="stats-icon bg-info bg-opacity-10 text-info">
+                            <i class="bi bi-journal-text"></i>
+                        </div>
+                        <div>
+                            <h6 class="stats-label">总记录数</h6>
+                            <h3 class="stats-number" id="borrowTotalRecords">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 搜索 & 添加 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-6">
+                            <div class="input-group search-box">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" id="borrowSearchInput" class="form-control" placeholder="搜索书名或读者姓名..." autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <button class="btn btn-primary" onclick="showBorrowModal()">
+                                <i class="bi bi-plus-lg me-1"></i>借阅图书
+                            </button>
+                            <button class="btn btn-outline-secondary ms-2" onclick="loadBorrowRecords()" title="刷新">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 借阅记录表格 -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">#</th>
+                                    <th>图书</th>
+                                    <th>读者</th>
+                                    <th>借阅日期</th>
+                                    <th>应还日期</th>
+                                    <th>归还日期</th>
+                                    <th>状态</th>
+                                    <th class="text-center pe-4">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="borrowTableBody">
+                                <tr><td colspan="8" class="text-center py-5 text-muted">
+                                    <div class="spinner-border spinner-border-sm me-2"></div>加载中...
+                                </td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">共 <strong id="borrowCount">0</strong> 条记录</span>
+                    <nav id="borrowPagination"></nav>
+                </div>
+            </div>
+        </section>
+
+        <!-- 数据库管理页面 -->
+        <section id="page-admin" class="page-section">
+            <div class="page-header">
+                <h4 class="page-title"><i class="bi bi-server me-2"></i>数据库管理</h4>
+                <p class="page-desc">直接管理 MySQL 数据库表数据（仅管理员）</p>
+            </div>
+
+            <div class="admin-layout">
+                <!-- 左侧表列表 -->
+                <div class="admin-sidebar">
+                    <div class="admin-sidebar-header">
+                        <i class="bi bi-diagram-3 me-2"></i>数据表
+                        <button class="btn btn-sm btn-outline-light ms-auto" onclick="loadAdminPanel()" title="刷新">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                    <div class="admin-table-list" id="adminTableList">
+                        <div class="text-muted text-center py-4">
+                            <div class="spinner-border spinner-border-sm me-2"></div>加载中...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧主区域 -->
+                <div class="admin-main">
+                    <!-- Tab 切换 -->
+                    <ul class="nav nav-tabs admin-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#adminDataTab" type="button">
+                                <i class="bi bi-table me-1"></i>数据浏览
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#adminSqlTab" type="button">
+                                <i class="bi bi-code-slash me-1"></i>SQL 控制台
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content p-3">
+                        <!-- 数据浏览 Tab -->
+                        <div class="tab-pane fade show active" id="adminDataTab">
+                            <div id="adminTableInfo" class="d-none">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <h5 class="mb-1" id="adminTableName">-</h5>
+                                        <small class="text-muted" id="adminTableDesc">请从左侧选择数据表</small>
+                                    </div>
+                                    <button class="btn btn-primary btn-sm" onclick="showAddAdminRow()">
+                                        <i class="bi bi-plus-lg me-1"></i>添加行
+                                    </button>
+                                </div>
+                                <div class="card">
+                                    <div class="card-body p-0">
+                                        <div class="admin-data-wrap">
+                                            <table class="table table-sm table-hover mb-0">
+                                                <thead id="adminTableHead"></thead>
+                                                <tbody id="adminTableBody">
+                                                    <tr><td colspan="10" class="text-center text-muted py-5">
+                                                        <i class="bi bi-arrow-left-circle me-2"></i>请从左侧选择一个数据表
+                                                    </td></tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer d-flex justify-content-between align-items-center">
+                                        <span class="text-muted small">共 <strong id="adminRowCount">0</strong> 行 | <span id="adminColumnCount">0</span></span>
+                                        <nav id="adminPagination"></nav>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="adminTablePlaceholder" class="text-center py-5 text-muted">
+                                <i class="bi bi-arrow-left-circle" style="font-size:2rem;"></i>
+                                <p class="mt-3">请从左侧选择一个数据表开始浏览</p>
+                            </div>
+                        </div>
+
+                        <!-- SQL 控制台 Tab -->
+                        <div class="tab-pane fade" id="adminSqlTab">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">SQL 查询语句 <small class="text-muted">（仅支持 SELECT / SHOW / DESCRIBE）</small></label>
+                                <textarea class="form-control admin-sql-input" id="adminSqlInput" rows="5"
+                                    placeholder="SELECT * FROM books WHERE quantity > 0 ORDER BY id DESC LIMIT 20"></textarea>
+                            </div>
+                            <button class="btn btn-primary" id="executeSqlBtn">
+                                <i class="bi bi-play-fill me-1"></i>执行查询
+                            </button>
+                            <div class="mt-3" id="adminSqlResult"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 数据概览页面 -->
+        <section id="page-dashboard" class="page-section">
+            <div class="page-header">
+                <h4 class="page-title"><i class="bi bi-bar-chart me-2"></i>数据概览</h4>
+                <p class="page-desc">图书统计数据一览</p>
+            </div>
+
+            <!-- 大统计卡片 -->
+            <div class="row g-3 mb-4">
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card stats-card-large">
+                        <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                            <i class="bi bi-collection-fill"></i>
+                        </div>
+                        <div>
+                            <h6 class="stats-label">馆藏图书总量</h6>
+                            <h3 class="stats-number" id="dashTotalBooks">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card stats-card-large">
+                        <div class="stats-icon bg-success bg-opacity-10 text-success">
+                            <i class="bi bi-tags-fill"></i>
+                        </div>
+                        <div>
+                            <h6 class="stats-label">图书种类数</h6>
+                            <h3 class="stats-number" id="dashCategories">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card stats-card-large">
+                        <div class="stats-icon bg-warning bg-opacity-10 text-warning">
+                            <i class="bi bi-box-seam-fill"></i>
+                        </div>
+                        <div>
+                            <h6 class="stats-label">总库存量</h6>
+                            <h3 class="stats-number" id="dashQuantity">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stats-card stats-card-large">
+                        <div class="stats-icon bg-info bg-opacity-10 text-info">
+                            <i class="bi bi-journal-check"></i>
+                        </div>
+                        <div>
+                            <h6 class="stats-label">可借数量</h6>
+                            <h3 class="stats-number" id="dashAvailable">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 分类统计 & 低库存提醒 -->
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-pie-chart me-2"></i>分类分布</h6>
+                        </div>
+                        <div class="card-body" id="categoryStats">
+                            <p class="text-muted text-center py-4">暂无数据</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>库存预警（低于5本）</h6>
+                        </div>
+                        <div class="card-body" id="lowStockList">
+                            <p class="text-muted text-center py-4">暂无预警</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 查看详情模态框 -->
+    <div class="modal fade" id="detailModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-info-circle me-2"></i>图书详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="detailContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认模态框 -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center py-4">
+                    <div class="text-danger mb-3" style="font-size:3rem;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <h6>确认删除该图书？</h6>
+                    <p class="text-muted small" id="deleteBookTitle"></p>
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                            <i class="bi bi-trash me-1"></i>确认删除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 读者表单模态框 -->
+    <div class="modal fade" id="readerModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="readerModalTitle"><i class="bi bi-person-plus me-2"></i>添加读者</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="readerForm" novalidate>
+                        <input type="hidden" id="editReaderId">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="readerName" class="form-label">姓名 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="readerName" required placeholder="请输入姓名">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="readerNumber" class="form-label">读者编号 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="readerNumber" required placeholder="请输入读者编号">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="readerGender" class="form-label">性别</label>
+                                <select class="form-select" id="readerGender">
+                                    <option value="">请选择</option>
+                                    <option value="男">男</option>
+                                    <option value="女">女</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="readerPhone" class="form-label">电话</label>
+                                <input type="text" class="form-control" id="readerPhone" placeholder="手机号码">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="readerEmail" class="form-label">邮箱</label>
+                                <input type="email" class="form-control" id="readerEmail" placeholder="电子邮箱">
+                            </div>
+                            <div class="col-12">
+                                <label for="readerAddress" class="form-label">地址</label>
+                                <input type="text" class="form-control" id="readerAddress" placeholder="家庭/单位地址">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="readerMaxBorrow" class="form-label">最大借阅数</label>
+                                <input type="number" class="form-control" id="readerMaxBorrow" value="5" min="1" max="20">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="readerStatus" class="form-label">状态</label>
+                                <select class="form-select" id="readerStatus">
+                                    <option value="active">正常</option>
+                                    <option value="inactive">停用</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveReaderBtn" onclick="saveReader()">
+                        <i class="bi bi-check-lg me-1"></i>保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 读者删除确认模态框 -->
+    <div class="modal fade" id="readerDeleteModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center py-4">
+                    <div class="text-danger mb-3" style="font-size:3rem;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <h6>确认删除该读者？</h6>
+                    <p class="text-muted small" id="deleteReaderName"></p>
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-danger" id="confirmReaderDeleteBtn">
+                            <i class="bi bi-trash me-1"></i>确认删除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 借阅表单模态框 -->
+    <div class="modal fade" id="borrowModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-book-half me-2"></i>借阅图书</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="borrowForm" novalidate>
+                        <div class="mb-3">
+                            <label for="borrowBookId" class="form-label">图书 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="borrowBookId" required>
+                                <option value="">请选择图书</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="borrowReaderId" class="form-label">读者 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="borrowReaderId" required>
+                                <option value="">请选择读者</option>
+                            </select>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="borrowDate" class="form-label">借阅日期</label>
+                                <input type="date" class="form-control" id="borrowDate">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="dueDate" class="form-label">应还日期</label>
+                                <input type="date" class="form-control" id="dueDate">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveBorrowBtn" onclick="saveBorrow()">
+                        <i class="bi bi-check-lg me-1"></i>确认借阅
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 归还确认模态框 -->
+    <div class="modal fade" id="returnModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center py-4">
+                    <div class="text-success mb-3" style="font-size:3rem;">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <h6>确认归还该图书？</h6>
+                    <p class="text-muted small" id="returnBookInfo"></p>
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-success" id="confirmReturnBtn">
+                            <i class="bi bi-check-lg me-1"></i>确认归还
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 借阅删除确认模态框 -->
+    <div class="modal fade" id="borrowDeleteModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center py-4">
+                    <div class="text-danger mb-3" style="font-size:3rem;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <h6>确认删除该借阅记录？</h6>
+                    <p class="text-muted small" id="deleteBorrowInfo"></p>
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-danger" id="confirmBorrowDeleteBtn">
+                            <i class="bi bi-trash me-1"></i>确认删除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理员行编辑模态框 -->
+    <div class="modal fade" id="adminRowModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="adminRowModalTitle"><i class="bi bi-pencil-square me-2"></i>编辑行</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="adminRowForm">
+                        <input type="hidden" id="editAdminPkValue">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveAdminRowBtn">
+                        <i class="bi bi-check-lg me-1"></i>保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理员删除确认模态框 -->
+    <div class="modal fade" id="adminDeleteModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center py-4">
+                    <div class="text-danger mb-3" style="font-size:3rem;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <h6>确认删除该行数据？</h6>
+                    <p class="text-muted small" id="deleteAdminInfo"></p>
+                    <p class="text-danger small">此操作不可逆！</p>
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-danger" id="confirmAdminDeleteBtn">
+                            <i class="bi bi-trash me-1"></i>确认删除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理员切换登录模态框 -->
+    <div class="modal fade" id="adminSwitchModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-shield-lock me-2"></i>管理员登录</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="adminSwitchError" class="alert alert-danger d-none"></div>
+                    <div class="mb-3">
+                        <label for="adminSwitchUsername" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="adminSwitchUsername" value="admin">
+                    </div>
+                    <div class="mb-3">
+                        <label for="adminSwitchPassword" class="form-label">密码</label>
+                        <input type="password" class="form-control" id="adminSwitchPassword" value="admin123">
+                    </div>
+                    <button type="button" class="btn btn-primary w-100" onclick="confirmAdminSwitch()">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>登录
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="toast" class="toast align-items-center text-bg-success border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/reader.js"></script>
+    <script src="/js/borrow.js"></script>
+    <script src="/js/admin.js"></script>
+</body>
+</html>
